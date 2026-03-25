@@ -1,0 +1,20 @@
+[Unit]
+Description=BirdNET-Go real-time bird detection
+After=network.target sound.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/bird-listener
+ExecStart=/home/pi/bird-listener/bin/birdnet-go realtime --config /home/pi/bird-listener/config/birdnet-config.yaml
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Give the audio subsystem time to settle after boot
+ExecStartPre=/bin/sleep 5
+
+[Install]
+WantedBy=multi-user.target

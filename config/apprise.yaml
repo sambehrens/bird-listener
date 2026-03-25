@@ -1,0 +1,13 @@
+# Apprise notification configuration
+# Docs: https://github.com/caronc/apprise/wiki/config_yaml
+#
+# ntfy topic: sam_b_bird_alerts
+#
+# To add more destinations (email, Discord, etc.) just add more urls entries.
+# Full list of supported services: https://github.com/caronc/apprise/wiki
+
+version: 1
+
+urls:
+  - ntfy://ntfy.sh/sam_b_bird_alerts:
+      - tag: bird

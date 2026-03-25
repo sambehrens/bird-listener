@@ -1,0 +1,19 @@
+[Unit]
+Description=Bird detection → Apprise notification watcher
+After=birdnet-go.service
+Requires=birdnet-go.service
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/home/pi/bird-listener/.venv/bin/python3 /home/pi/bird-listener/scripts/notify.py \
+    --log /home/pi/bird-listener/logs/detections.log \
+    --config /home/pi/bird-listener/config/apprise.yaml \
+    --min-confidence 0.75
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
