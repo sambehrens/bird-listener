@@ -63,10 +63,16 @@ def main():
         default="/home/sam/bird-listener/config/apprise.yaml",
         help="Path to Apprise config file",
     )
+    parser.add_argument(
+        "--blocklist",
+        default="/home/sam/bird-listener/config/blocklist.txt",
+        help="Path to blocklist file (one bird name per line)",
+    )
     args = parser.parse_args()
 
     log_path = Path(args.log)
     config_path = Path(args.config)
+    blocklist_path = Path(args.blocklist)
 
     if not config_path.exists():
         print(f"ERROR: Apprise config not found: {config_path}", file=sys.stderr)
@@ -87,6 +93,18 @@ def main():
 
         detection = parse_detection(line)
         if not detection:
+            continue
+
+        # Reload blocklist on every detection so edits take effect immediately
+        blocklist = set()
+        if blocklist_path.exists():
+            for entry in blocklist_path.read_text().splitlines():
+                entry = entry.strip()
+                if entry and not entry.startswith("#"):
+                    blocklist.add(entry.lower())
+
+        if detection["common"].lower() in blocklist:
+            print(f"Blocked: {detection['common']}")
             continue
 
         title = f"Bird detected: {detection['common']}"

@@ -1,0 +1,7 @@
+# Birds to suppress notifications for — one name per line.
+# Lines starting with # are comments. Names are case-insensitive.
+# Changes take effect immediately without restarting the service.
+#
+# Example:
+# House Sparrow
+# European Starling
