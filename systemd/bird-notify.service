@@ -6,10 +6,10 @@ Requires=birdnet-go.service
 [Service]
 Type=simple
 User=sam
+Environment=PYTHONUNBUFFERED=1
 ExecStart=/home/sam/bird-listener/.venv/bin/python3 /home/sam/bird-listener/scripts/notify.py \
     --log /home/sam/bird-listener/logs/detections.log \
-    --config /home/sam/bird-listener/config/apprise.yaml \
-    --min-confidence 0.75
+    --config /home/sam/bird-listener/config/apprise.yaml
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

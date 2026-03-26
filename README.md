@@ -79,12 +79,12 @@ http://<pi-ip>:8080
 | `birdnet.longitude` | `-95.9765` | Tulsa, OK |
 | `birdnet.threshold` | `0.75` | Min confidence to record (0.1–1.0) |
 | `birdnet.threads` | `2` | CPU threads (Pi 3 has 4 cores) |
-| `realtime.audio.source` | `plughw:2,0` | Sennheiser Profile |
+| `realtime.audio.source` | `USB Audio` | Sennheiser Profile (v0.6.4 matches by name) |
 | `notification.push.providers[0].urls` | `ntfy://ntfy.sh/sam_b_bird_alerts` | ntfy topic |
 
 ### Changing the audio device
 
-Run `arecord -l` to list devices. Update `realtime.audio.source` in the config to match (format: `plughw:<card>,<device>`).
+Run `arecord -l` to list devices. BirdNET-Go v0.6.4 matches the source by substring of the device name (e.g. `"USB Audio"` for Sennheiser Profile). Use `arecord -L` to see full ALSA names if needed.
 
 ### Adding more notification destinations
 

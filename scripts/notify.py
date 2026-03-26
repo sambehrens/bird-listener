@@ -5,8 +5,8 @@ Bird detection notification watcher.
 Tails the BirdNET-Go detection log and sends an Apprise notification
 for each new detection. Run as a systemd service alongside birdnet-go.
 
-Detection log format:
-  2024/01/15 08:23:45 Northern Cardinal (Cardinalis cardinalis) 0.9523
+Detection log format (v0.6.4 OBS chat log):
+  08:23:45 Northern Cardinal
 """
 
 import re
@@ -17,13 +17,8 @@ from pathlib import Path
 
 import apprise
 
-# Regex to parse a detection log line
-DETECTION_RE = re.compile(
-    r"(?P<date>\d{4}/\d{2}/\d{2})\s+"
-    r"(?P<time>\d{2}:\d{2}:\d{2})\s+"
-    r"(?P<common>.+?)\s+\((?P<scientific>[^)]+)\)\s+"
-    r"(?P<confidence>[\d.]+)"
-)
+# Regex to parse a detection log line (v0.6.4 format: HH:MM:SS Common Name)
+DETECTION_RE = re.compile(r"(?P<time>\d{2}:\d{2}:\d{2})\s+(?P<common>.+)")
 
 
 def parse_detection(line: str) -> dict | None:
@@ -31,11 +26,8 @@ def parse_detection(line: str) -> dict | None:
     if not m:
         return None
     return {
-        "date": m.group("date"),
         "time": m.group("time"),
-        "common": m.group("common"),
-        "scientific": m.group("scientific"),
-        "confidence": float(m.group("confidence")),
+        "common": m.group("common").strip(),
     }
 
 
@@ -71,12 +63,6 @@ def main():
         default="/home/sam/bird-listener/config/apprise.yaml",
         help="Path to Apprise config file",
     )
-    parser.add_argument(
-        "--min-confidence",
-        type=float,
-        default=0.75,
-        help="Skip notifications below this confidence (0.0–1.0)",
-    )
     args = parser.parse_args()
 
     log_path = Path(args.log)
@@ -103,16 +89,8 @@ def main():
         if not detection:
             continue
 
-        if detection["confidence"] < args.min_confidence:
-            continue
-
-        pct = int(detection["confidence"] * 100)
         title = f"Bird detected: {detection['common']}"
-        body = (
-            f"{detection['scientific']}\n"
-            f"Confidence: {pct}%\n"
-            f"{detection['date']} {detection['time']}"
-        )
+        body = detection["time"]
 
         print(f"Notifying: {title}")
         ap.notify(title=title, body=body, tag="bird")

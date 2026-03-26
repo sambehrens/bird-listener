@@ -1,36 +1,24 @@
-# BirdNET-Go configuration
+# BirdNET-Go v0.6.x configuration
 # Full reference: https://github.com/tphakala/birdnet-go/wiki/Configuration
-#
-# This file contains only the settings that differ from BirdNET-Go defaults.
-# All other settings use built-in defaults.
 
 birdnet:
   sensitivity: 1.0
   threshold: 0.75
   overlap: 1.5
-  latitude: 36.1183
-  longitude: -95.9765
-  locationconfigured: true
   threads: 2           # Pi 3 has 4 cores; 2 leaves headroom for the OS
-  locale: en-us
+  locale: en
+  latitude: 36.1183    # Tulsa, OK
+  longitude: -95.9765  # Tulsa, OK
 
 realtime:
   audio:
-    source: "plughw:2,0"   # Sennheiser Profile USB mic (card 2, device 0)
+    source: "USB Audio"   # Sennheiser Profile — v0.6.4 matches by device name substring
 
-notification:
-  push:
+  log:
     enabled: true
-    providers:
-      - type: shoutrrr
-        enabled: true
-        name: ntfy-bird-alerts
-        filter:
-          types:
-            - detection
-        urls:
-          - ntfy://ntfy.sh/sam_b_bird_alerts
+    path: logs/detections.log
+    rotation: daily
 
 webserver:
   enabled: true
-  port: "8080"
+  port: 8080
