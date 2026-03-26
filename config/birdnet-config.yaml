@@ -1,63 +1,36 @@
 # BirdNET-Go configuration
 # Full reference: https://github.com/tphakala/birdnet-go/wiki/Configuration
-
-debug: false
-
-main:
-  name: "bird-listener"
-  timeas24h: true
-  log:
-    enabled: true
-    path: "logs/birdnet-go.log"
-    rotation: daily
-    maxsize: 100
-    rotationday: 0
+#
+# This file contains only the settings that differ from BirdNET-Go defaults.
+# All other settings use built-in defaults.
 
 birdnet:
   sensitivity: 1.0
-  threshold: 0.75      # Minimum confidence to record a detection (0.0–1.0)
-  overlap: 0.0
-  longitude: -95.9765  # Tulsa, OK
-  latitude: 36.1183    # Tulsa, OK
-  threads: 2           # Pi 3 has 4 cores; 2 keeps headroom for the OS
-  locale: en
+  threshold: 0.75
+  overlap: 1.5
+  latitude: 36.1183
+  longitude: -95.9765
+  locationconfigured: true
+  threads: 2           # Pi 3 has 4 cores; 2 leaves headroom for the OS
+  locale: en-us
 
 realtime:
-  interval: 15         # seconds between audio captures
-  processingtime: false
   audio:
-    source: "plughw:1,0"   # Sennheiser Profile (card 1, device 0)
-    ffmpeg:
-      enabled: false
-  log:
+    source: "plughw:2,0"   # Sennheiser Profile USB mic (card 2, device 0)
+
+notification:
+  push:
     enabled: true
-    path: "logs/detections.log"
-  birdweather:
-    enabled: false
-    id: ""
-    threshold: 0.9
-  mqtt:
-    enabled: false
-    broker: "localhost"
-    topic: "birdnet"
-    username: ""
-    password: ""
-  privacyfilter:
-    enabled: true
-    confidence: 0.05
+    providers:
+      - type: shoutrrr
+        enabled: true
+        name: ntfy-bird-alerts
+        filter:
+          types:
+            - detection
+        urls:
+          - ntfy://ntfy.sh/sam_b_bird_alerts
 
 webserver:
   enabled: true
-  port: 8080
-  log:
-    enabled: true
-    path: "logs/webserver.log"
-    rotation: daily
-    maxsize: 100
-
-output:
-  sqlite:
-    enabled: true
-    path: "data/birdnet.db"
-  csv:
-    enabled: false
+  port: "8080"

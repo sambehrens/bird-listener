@@ -44,17 +44,15 @@ install_deps() {
     info "Installing system dependencies..."
     sudo apt-get install -y --no-install-recommends \
         ffmpeg \
+        sox \
         alsa-utils \
-        python3 \
-        python3-pip \
-        python3-venv \
         curl \
         git
 
     info "Checking audio device..."
     if ! arecord -l 2>/dev/null | grep -q "Sennheiser"; then
         warn "Sennheiser Profile mic not detected. Check USB connection."
-        warn "Run 'arecord -l' to list available devices."
+        warn "Run 'arecord -l' to list available devices and update audio.source in birdnet-config.yaml."
     else
         info "Sennheiser Profile detected."
     fi
@@ -74,7 +72,7 @@ install_birdnet() {
     fi
     info "Latest release: $latest_tag"
 
-    local archive="birdnet-go_Linux_${BIRDNET_ARCH}.tar.gz"
+    local archive="birdnet-go-linux-${BIRDNET_ARCH}.tar.gz"
     local url="https://github.com/${BIRDNET_REPO}/releases/download/${latest_tag}/${archive}"
 
     info "Downloading $archive..."
@@ -86,60 +84,56 @@ install_birdnet() {
     chmod +x "$BIN_DIR/birdnet-go"
     rm "/tmp/$archive"
 
-    info "BirdNET-Go installed at $BIN_DIR/birdnet-go"
-}
+    # Install bundled TensorFlow Lite library system-wide
+    if [[ -f "$BIN_DIR/libtensorflowlite_c.so" ]]; then
+        info "Installing TensorFlow Lite library..."
+        sudo cp "$BIN_DIR/libtensorflowlite_c.so" /usr/local/lib/
+        sudo ldconfig
+    fi
 
-# ── Python venv + Apprise ─────────────────────────────────────────────────────
-install_apprise() {
-    info "Creating Python virtual environment..."
-    python3 -m venv "$INSTALL_DIR/.venv"
-    "$INSTALL_DIR/.venv/bin/pip" install --quiet --upgrade pip
-    "$INSTALL_DIR/.venv/bin/pip" install --quiet apprise
-    info "Apprise installed."
+    info "BirdNET-Go installed at $BIN_DIR/birdnet-go"
 }
 
 # ── Config & directories ──────────────────────────────────────────────────────
 setup_dirs() {
-    mkdir -p "$INSTALL_DIR"/{logs,data,config}
+    mkdir -p "$INSTALL_DIR"/{logs,data,config,clips}
 
-    # Copy config files if they don't already exist (don't overwrite customised ones)
-    for f in config/birdnet-config.yaml config/apprise.yaml; do
-        if [[ ! -f "$INSTALL_DIR/$f" ]]; then
-            cp "$f" "$INSTALL_DIR/$f"
-            info "Copied $f"
+    local repo_dir
+    repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Only copy config if source and destination differ (repo cloned elsewhere)
+    if [[ "$repo_dir" != "$INSTALL_DIR" ]]; then
+        if [[ ! -f "$INSTALL_DIR/config/birdnet-config.yaml" ]]; then
+            cp "$repo_dir/config/birdnet-config.yaml" "$INSTALL_DIR/config/birdnet-config.yaml"
+            info "Copied config/birdnet-config.yaml"
         else
-            info "Skipping $f (already exists)"
+            info "Skipping config/birdnet-config.yaml (already exists)"
         fi
-    done
-
-    cp scripts/notify.py "$INSTALL_DIR/scripts/notify.py"
-    chmod +x "$INSTALL_DIR/scripts/notify.py"
+    else
+        info "Running in-place — skipping file copy"
+    fi
 }
 
 # ── Systemd services ──────────────────────────────────────────────────────────
 install_services() {
-    info "Installing systemd services..."
-    sudo cp systemd/birdnet-go.service   /etc/systemd/system/
-    sudo cp systemd/bird-notify.service  /etc/systemd/system/
+    info "Installing systemd service..."
+    sudo cp systemd/birdnet-go.service /etc/systemd/system/
     sudo systemctl daemon-reload
-    sudo systemctl enable birdnet-go bird-notify
-    info "Services enabled (will start on next boot, or run 'sudo systemctl start birdnet-go bird-notify')"
+    sudo systemctl enable birdnet-go
+    info "Service enabled (will start on next boot, or run 'sudo systemctl start birdnet-go')"
 }
 
 # ── Config validation ─────────────────────────────────────────────────────────
 check_config() {
     local cfg="$INSTALL_DIR/config/birdnet-config.yaml"
-    local ntfy_cfg="$INSTALL_DIR/config/apprise.yaml"
 
-    if grep -q "longitude: 0.0" "$cfg"; then
+    if grep -q "latitude: 0" "$cfg"; then
         warn "Latitude/longitude not set in birdnet-config.yaml."
         warn "BirdNET-Go uses location for species filtering — set these for better accuracy."
     fi
 
-    if grep -q "YOUR_NTFY_TOPIC" "$ntfy_cfg"; then
-        warn "ntfy topic not set in config/apprise.yaml."
-        warn "Edit the file and replace YOUR_NTFY_TOPIC with your chosen topic name,"
-        warn "then subscribe to it in the ntfy app on your phone."
+    if grep -q "sam_b_bird_alerts" "$cfg"; then
+        info "ntfy topic: sam_b_bird_alerts — subscribe to this in the ntfy app on your phone."
     fi
 }
 
@@ -152,7 +146,6 @@ main() {
     install_deps
     setup_dirs
     install_birdnet
-    install_apprise
     install_services
     check_config
 
@@ -160,17 +153,12 @@ main() {
     info "=== Installation complete ==="
     echo
     echo "Next steps:"
-    echo "  1. Edit $INSTALL_DIR/config/birdnet-config.yaml"
-    echo "     → Set latitude and longitude for your location"
-    echo "  2. Edit $INSTALL_DIR/config/apprise.yaml"
-    echo "     → Replace YOUR_NTFY_TOPIC with your chosen topic name"
-    echo "     → Install the ntfy app and subscribe to that topic"
-    echo "  3. Start the services:"
-    echo "       sudo systemctl start birdnet-go bird-notify"
-    echo "  4. Check logs:"
+    echo "  1. Install the ntfy app on your phone and subscribe to: sam_b_bird_alerts"
+    echo "  2. Start the service:"
+    echo "       sudo systemctl start birdnet-go"
+    echo "  3. Check logs:"
     echo "       journalctl -u birdnet-go -f"
-    echo "       journalctl -u bird-notify -f"
-    echo "  5. Web UI: http://$(hostname -I | awk '{print $1}'):8080"
+    echo "  4. Web UI: http://$(hostname -I | awk '{print $1}'):8080"
 }
 
 main "$@"

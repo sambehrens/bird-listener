@@ -1,129 +1,97 @@
 # Bird Listener
 
-A bird detector using BirdNET-Go and Apprise to run bird detection 24/7 at my house. Runs on a Raspberry Pi 3.
+24/7 bird detection using BirdNET-Go with push notifications via ntfy. Runs on a Raspberry Pi 3.
 
 ## How it works
 
-- **BirdNET-Go** continuously listens via a USB microphone and identifies bird species using a neural network
-- **notify.py** tails the detection log and fires an **Apprise** notification for each new detection
-- **ntfy** delivers push notifications to your phone (iOS/Android, free)
-- Two **systemd services** keep both processes running and auto-restart them on failure
-
 ```
-Sennheiser Profile (USB mic)
+Sennheiser Profile (USB mic, plughw:2,0)
         │
         ▼
   BirdNET-Go (realtime mode)
-        │  writes detections.log
+        │  built-in shoutrrr notification
         ▼
-  notify.py (tails log)
-        │  calls Apprise
-        ▼
-  ntfy.sh → phone notification
+  ntfy.sh (sam_b_bird_alerts) → phone
 ```
+
+BirdNET-Go handles everything: audio capture, bird identification, and push notifications. One service, no extra processes.
 
 ## Requirements
 
 **Hardware:**
-- Raspberry Pi 3 (or newer)
-- USB microphone (Sennheiser Profile confirmed working)
+- Raspberry Pi 3 (or newer, 64-bit)
+- USB microphone (Sennheiser Profile confirmed working on card 2)
 
-**OS — IMPORTANT:**
-This setup requires **Raspberry Pi OS Bookworm or Bullseye (64-bit recommended)**.
-The Pi ships with a very old Raspbian Jessie image that is EOL and incompatible.
-Flash a fresh OS before proceeding: https://www.raspberrypi.com/software/
+**OS:** Raspberry Pi OS Lite **64-bit, Bookworm** (Debian 12+). Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/) — enable SSH in the settings.
 
 ## Setup
 
-### 1. Phone notifications (do this first)
+### 1. Phone — subscribe to ntfy
 
-1. Install the [ntfy app](https://ntfy.sh/) on your phone (iOS/Android, free)
-2. Choose a unique topic name — something like `yourname-birds-abc123`
-3. Subscribe to it in the app
+1. Install the [ntfy app](https://ntfy.sh/) (iOS/Android, free)
+2. Subscribe to topic: **`sam_b_bird_alerts`**
 
 ### 2. Flash the Pi
 
-Flash a fresh **Raspberry Pi OS Lite (64-bit, Bookworm)** to the SD card using Raspberry Pi Imager.
-Enable SSH in the imager settings and set your hostname/credentials.
+Use Raspberry Pi Imager to flash **Raspberry Pi OS Lite (64-bit)**. In the settings (⚙️):
+- Set hostname, username, password
+- **Enable SSH**
 
-### 3. Clone this repo onto the Pi
+### 3. Copy repo and run installer
 
+From your Mac:
 ```bash
-ssh pi@<pi-ip>
-git clone <this-repo-url> /home/sam/bird-listener
-cd /home/sam/bird-listener
-```
-
-### 4. Configure
-
-**`config/birdnet-config.yaml`** — set your location:
-```yaml
-birdnet:
-  latitude: 36.1183
-  longitude: -95.9765
-```
-
-**`config/apprise.yaml`** — ntfy topic is already set to `sam_b_bird_alerts`. Subscribe to this in the ntfy app on your phone.
-
-### 5. Run the installer
-
-```bash
+scp -r /path/to/bird-listener sam@<pi-ip>:/home/sam/
+ssh sam@<pi-ip>
+cd bird-listener
 bash install.sh
 ```
 
-The installer will:
-- Install system dependencies (ffmpeg, alsa-utils, python3)
-- Download the latest BirdNET-Go binary for your architecture
-- Create a Python venv and install Apprise
-- Install and enable both systemd services
+The installer:
+- Installs ffmpeg, sox, alsa-utils
+- Downloads the latest BirdNET-Go binary (arm64)
+- Installs the bundled TensorFlow Lite library
+- Installs and enables the systemd service
 
-### 6. Start
+### 4. Start
 
 ```bash
-sudo systemctl start birdnet-go bird-notify
+sudo systemctl start birdnet-go
 ```
 
-### 7. Verify
+### 5. Verify
 
 ```bash
-# Watch detections in real time
-tail -f /home/sam/bird-listener/logs/detections.log
+# Live logs
+journalctl -u birdnet-go -f
 
-# Check service status
-sudo systemctl status birdnet-go
-sudo systemctl status bird-notify
-
-# Web UI
+# Web UI (detections, spectrogram, settings)
 http://<pi-ip>:8080
 ```
 
-## Configuration reference
+## Configuration
 
-| File | Purpose |
-|------|---------|
-| `config/birdnet-config.yaml` | BirdNET-Go settings (audio source, location, thresholds) |
-| `config/apprise.yaml` | Notification destinations (ntfy topic, can add more) |
+**`config/birdnet-config.yaml`** — the only config file needed. Key settings:
 
-### Tuning detection sensitivity
+| Setting | Value | Notes |
+|---------|-------|-------|
+| `birdnet.latitude` | `36.1183` | Tulsa, OK |
+| `birdnet.longitude` | `-95.9765` | Tulsa, OK |
+| `birdnet.threshold` | `0.75` | Min confidence to record (0.1–1.0) |
+| `birdnet.threads` | `2` | CPU threads (Pi 3 has 4 cores) |
+| `realtime.audio.source` | `plughw:2,0` | Sennheiser Profile |
+| `notification.push.providers[0].urls` | `ntfy://ntfy.sh/sam_b_bird_alerts` | ntfy topic |
 
-In `birdnet-config.yaml`:
-- `birdnet.threshold` — minimum confidence to log a detection (default `0.75`)
-- `birdnet.sensitivity` — model sensitivity, higher = more detections (default `1.0`)
+### Changing the audio device
 
-In `bird-notify.service` / `notify.py`:
-- `--min-confidence` — minimum confidence to send a notification (default `0.75`)
+Run `arecord -l` to list devices. Update `realtime.audio.source` in the config to match (format: `plughw:<card>,<device>`).
 
-You can set the notification threshold higher than the log threshold to log everything
-but only notify on high-confidence detections.
+### Adding more notification destinations
 
-## Adding more notification destinations
-
-Edit `config/apprise.yaml` and add entries. Apprise supports 80+ services:
+BirdNET-Go uses [shoutrrr](https://containrrr.dev/shoutrrr/services/overview/) for notifications. Add URLs to `notification.push.providers[0].urls`:
 ```yaml
 urls:
-  - ntfy://ntfy.sh/YOUR_NTFY_TOPIC
-  - discord://webhook_id/webhook_token
-  - mailto://user:password@gmail.com
+  - ntfy://ntfy.sh/sam_b_bird_alerts
+  - slack://token@channel
+  - telegram://<bot-token>@telegram?chats=<chat-id>
 ```
-
-Full list: https://github.com/caronc/apprise/wiki
