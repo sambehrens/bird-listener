@@ -5,16 +5,19 @@
 ## How it works
 
 ```
-Sennheiser Profile (USB mic, plughw:2,0)
+Sennheiser Profile (USB mic)
         │
         ▼
-  BirdNET-Go (realtime mode)
-        │  built-in shoutrrr notification
+  BirdNET-Go v0.6.4 (realtime mode)
+        │  writes detections to logs/detections.log
+        ▼
+  notify.py (watches log file)
+        │  sends via Apprise
         ▼
   ntfy.sh (sam_b_bird_alerts) → phone
 ```
 
-BirdNET-Go handles everything: audio capture, bird identification, and push notifications. One service, no extra processes.
+Two systemd services run continuously: `birdnet-go` for audio capture and detection, `bird-notify` for watching the log and sending phone notifications.
 
 ## Requirements
 
@@ -33,11 +36,17 @@ BirdNET-Go handles everything: audio capture, bird identification, and push noti
 
 ### 2. Flash the Pi
 
-Use Raspberry Pi Imager to flash **Raspberry Pi OS Lite (64-bit)**. In the settings (⚙️):
+Use Raspberry Pi Imager to flash **Raspberry Pi OS Lite (64-bit)**. In the settings:
 - Set hostname, username, password
 - **Enable SSH**
 
-### 3. Copy repo and run installer
+### 3. Set the timezone
+
+```bash
+sudo timedatectl set-timezone America/Chicago
+```
+
+### 4. Copy repo and run installer
 
 From your Mac:
 ```bash
@@ -48,22 +57,27 @@ bash install.sh
 ```
 
 The installer:
-- Installs ffmpeg, sox, alsa-utils
-- Downloads the latest BirdNET-Go binary (arm64)
+- Installs ffmpeg, sox, alsa-utils, python3-venv
+- Downloads BirdNET-Go v0.6.4 binary (arm64)
 - Installs the bundled TensorFlow Lite library
-- Installs and enables the systemd service
+- Creates a Python venv and installs Apprise
+- Copies config to `~/.config/birdnet-go/config.yaml`
+- Installs and enables both systemd services
 
-### 4. Start
+### 5. Start
 
 ```bash
-sudo systemctl start birdnet-go
+sudo systemctl start birdnet-go bird-notify
 ```
 
-### 5. Verify
+### 6. Verify
 
 ```bash
-# Live logs
+# Live detection log
 journalctl -u birdnet-go -f
+
+# Notification watcher log
+journalctl -u bird-notify -f
 
 # Web UI (detections, spectrogram, settings)
 http://<pi-ip>:8080
@@ -71,7 +85,9 @@ http://<pi-ip>:8080
 
 ## Configuration
 
-**`config/birdnet-config.yaml`** — the only config file needed. Key settings:
+### `config/birdnet-config.yaml`
+
+Key settings:
 
 | Setting | Value | Notes |
 |---------|-------|-------|
@@ -79,19 +95,36 @@ http://<pi-ip>:8080
 | `birdnet.longitude` | `-95.9765` | Tulsa, OK |
 | `birdnet.threshold` | `0.75` | Min confidence to record (0.1–1.0) |
 | `birdnet.threads` | `2` | CPU threads (Pi 3 has 4 cores) |
-| `realtime.audio.source` | `USB Audio` | Sennheiser Profile (v0.6.4 matches by name) |
-| `notification.push.providers[0].urls` | `ntfy://ntfy.sh/sam_b_bird_alerts` | ntfy topic |
+| `realtime.audio.source` | `USB Audio` | Matched by device name substring |
 
-### Changing the audio device
+After editing, copy to the Pi and restart:
+```bash
+scp config/birdnet-config.yaml sam@<pi-ip>:~/.config/birdnet-go/config.yaml
+ssh sam@<pi-ip> sudo systemctl restart birdnet-go
+```
 
-Run `arecord -l` to list devices. BirdNET-Go v0.6.4 matches the source by substring of the device name (e.g. `"USB Audio"` for Sennheiser Profile). Use `arecord -L` to see full ALSA names if needed.
+### `config/apprise.yaml`
 
-### Adding more notification destinations
-
-BirdNET-Go uses [shoutrrr](https://containrrr.dev/shoutrrr/services/overview/) for notifications. Add URLs to `notification.push.providers[0].urls`:
+Notification destinations. Add more services using [Apprise URLs](https://github.com/caronc/apprise/wiki):
 ```yaml
 urls:
   - ntfy://ntfy.sh/sam_b_bird_alerts
-  - slack://token@channel
-  - telegram://<bot-token>@telegram?chats=<chat-id>
 ```
+
+### `config/blocklist.txt`
+
+Birds to suppress notifications for. One name per line, case-insensitive. Lines starting with `#` are comments.
+
+```
+House Sparrow
+European Starling
+```
+
+Changes take effect immediately — no restart needed. Deploy with:
+```bash
+scp config/blocklist.txt sam@<pi-ip>:/home/sam/bird-listener/config/blocklist.txt
+```
+
+### Changing the audio device
+
+Run `arecord -l` to list devices. BirdNET-Go v0.6.4 matches `realtime.audio.source` by substring of the device name. Use `arecord -L` to see full ALSA names.
