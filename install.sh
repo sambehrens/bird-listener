@@ -6,6 +6,10 @@ set -euo pipefail
 INSTALL_DIR="$HOME/bird-listener"
 BIN_DIR="$INSTALL_DIR/bin"
 BIRDNET_REPO="tphakala/birdnet-go"
+BIRDNET_VERSION="v0.6.4"   # Pinned stable release
+
+# BirdNET-Go v0.6.x reads config from this fixed location (no --config flag)
+BIRDNET_CONFIG_DIR="$HOME/.config/birdnet-go"
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; YELLOW='\033[1;33m'; GREEN='\033[0;32m'; NC='\033[0m'
@@ -46,13 +50,14 @@ install_deps() {
         ffmpeg \
         sox \
         alsa-utils \
+        python3 \
         curl \
         git
 
     info "Checking audio device..."
     if ! arecord -l 2>/dev/null | grep -q "Sennheiser"; then
         warn "Sennheiser Profile mic not detected. Check USB connection."
-        warn "Run 'arecord -l' to list available devices and update audio.source in birdnet-config.yaml."
+        warn "Run 'arecord -l' to list available devices."
     else
         info "Sennheiser Profile detected."
     fi
@@ -62,20 +67,10 @@ install_deps() {
 install_birdnet() {
     mkdir -p "$BIN_DIR"
 
-    info "Fetching latest BirdNET-Go release..."
-    local latest_tag
-    latest_tag=$(curl -s "https://api.github.com/repos/${BIRDNET_REPO}/releases/latest" \
-        | grep '"tag_name"' | head -1 | cut -d'"' -f4)
+    info "Downloading BirdNET-Go ${BIRDNET_VERSION}..."
+    local archive="birdnet-go-linux-${BIRDNET_ARCH}-${BIRDNET_VERSION}.tar.gz"
+    local url="https://github.com/${BIRDNET_REPO}/releases/download/${BIRDNET_VERSION}/${archive}"
 
-    if [[ -z "$latest_tag" ]]; then
-        error "Could not fetch BirdNET-Go release info. Check internet connection."
-    fi
-    info "Latest release: $latest_tag"
-
-    local archive="birdnet-go-linux-${BIRDNET_ARCH}.tar.gz"
-    local url="https://github.com/${BIRDNET_REPO}/releases/download/${latest_tag}/${archive}"
-
-    info "Downloading $archive..."
     curl -L --progress-bar -o "/tmp/$archive" "$url" \
         || error "Download failed. Check that $url exists."
 
@@ -96,43 +91,41 @@ install_birdnet() {
 
 # ── Config & directories ──────────────────────────────────────────────────────
 setup_dirs() {
-    mkdir -p "$INSTALL_DIR"/{logs,data,config,clips}
+    mkdir -p "$INSTALL_DIR"/{logs,data,clips,scripts}
+    mkdir -p "$BIRDNET_CONFIG_DIR"
 
     local repo_dir
     repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-    # Only copy config if source and destination differ (repo cloned elsewhere)
-    if [[ "$repo_dir" != "$INSTALL_DIR" ]]; then
-        if [[ ! -f "$INSTALL_DIR/config/birdnet-config.yaml" ]]; then
-            cp "$repo_dir/config/birdnet-config.yaml" "$INSTALL_DIR/config/birdnet-config.yaml"
-            info "Copied config/birdnet-config.yaml"
-        else
-            info "Skipping config/birdnet-config.yaml (already exists)"
-        fi
+    # Copy birdnet config to the location BirdNET-Go expects
+    if [[ ! -f "$BIRDNET_CONFIG_DIR/config.yaml" ]]; then
+        cp "$repo_dir/config/birdnet-config.yaml" "$BIRDNET_CONFIG_DIR/config.yaml"
+        info "Installed BirdNET-Go config to $BIRDNET_CONFIG_DIR/config.yaml"
     else
-        info "Running in-place — skipping file copy"
+        info "Skipping BirdNET-Go config (already exists at $BIRDNET_CONFIG_DIR/config.yaml)"
     fi
+
+    # Copy notify script and config
+    if [[ "$repo_dir" != "$INSTALL_DIR" ]]; then
+        cp "$repo_dir/config/blocklist.txt" "$INSTALL_DIR/config/blocklist.txt"
+        cp "$repo_dir/scripts/notify.py"    "$INSTALL_DIR/scripts/notify.py"
+    fi
+    chmod +x "$INSTALL_DIR/scripts/notify.py"
 }
 
 # ── Systemd services ──────────────────────────────────────────────────────────
 install_services() {
-    info "Installing systemd service..."
-    sudo cp systemd/birdnet-go.service /etc/systemd/system/
+    info "Installing systemd services..."
+    sudo cp systemd/birdnet-go.service  /etc/systemd/system/
+    sudo cp systemd/bird-notify.service /etc/systemd/system/
     sudo systemctl daemon-reload
-    sudo systemctl enable birdnet-go
-    info "Service enabled (will start on next boot, or run 'sudo systemctl start birdnet-go')"
+    sudo systemctl enable birdnet-go bird-notify
+    info "Services enabled."
 }
 
 # ── Config validation ─────────────────────────────────────────────────────────
 check_config() {
-    local cfg="$INSTALL_DIR/config/birdnet-config.yaml"
-
-    if grep -q "latitude: 0" "$cfg"; then
-        warn "Latitude/longitude not set in birdnet-config.yaml."
-        warn "BirdNET-Go uses location for species filtering — set these for better accuracy."
-    fi
-
-    if grep -q "sam_b_bird_alerts" "$cfg"; then
+    if grep -q "sam_b_bird_alerts" /etc/systemd/system/bird-notify.service 2>/dev/null; then
         info "ntfy topic: sam_b_bird_alerts — subscribe to this in the ntfy app on your phone."
     fi
 }
@@ -154,10 +147,11 @@ main() {
     echo
     echo "Next steps:"
     echo "  1. Install the ntfy app on your phone and subscribe to: sam_b_bird_alerts"
-    echo "  2. Start the service:"
-    echo "       sudo systemctl start birdnet-go"
+    echo "  2. Start the services:"
+    echo "       sudo systemctl start birdnet-go bird-notify"
     echo "  3. Check logs:"
     echo "       journalctl -u birdnet-go -f"
+    echo "       journalctl -u bird-notify -f"
     echo "  4. Web UI: http://$(hostname -I | awk '{print $1}'):8080"
 }
 

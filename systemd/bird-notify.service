@@ -7,9 +7,9 @@ Requires=birdnet-go.service
 Type=simple
 User=sam
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/sam/bird-listener/.venv/bin/python3 /home/sam/bird-listener/scripts/notify.py \
+ExecStart=/usr/bin/python3 /home/sam/bird-listener/scripts/notify.py \
     --log /home/sam/bird-listener/logs/detections.log \
-    --config /home/sam/bird-listener/config/apprise.yaml
+    --ntfy-url https://ntfy.sh/sam_b_bird_alerts
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

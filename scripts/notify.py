@@ -2,7 +2,7 @@
 """
 Bird detection notification watcher.
 
-Tails the BirdNET-Go detection log and sends an Apprise notification
+Tails the BirdNET-Go detection log and sends an ntfy push notification
 for each new detection. Run as a systemd service alongside birdnet-go.
 
 Detection log format (v0.6.4 OBS chat log):
@@ -13,9 +13,8 @@ import re
 import sys
 import time
 import argparse
+import urllib.request
 from pathlib import Path
-
-import apprise
 
 # Regex to parse a detection log line (v0.6.4 format: HH:MM:SS Common Name)
 DETECTION_RE = re.compile(r"(?P<time>\d{2}:\d{2}:\d{2})\s+(?P<common>.+)")
@@ -43,25 +42,27 @@ def tail_file(path: Path):
                 time.sleep(0.5)
 
 
-def build_apprise(config_path: Path) -> apprise.Apprise:
-    ac = apprise.AppriseConfig()
-    ac.add(str(config_path))
-    ap = apprise.Apprise()
-    ap.add(ac)
-    return ap
+def notify(ntfy_url: str, title: str, body: str) -> None:
+    req = urllib.request.Request(
+        ntfy_url,
+        data=body.encode(),
+        headers={"Title": title},
+        method="POST",
+    )
+    urllib.request.urlopen(req, timeout=10)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="BirdNET-Go → Apprise notifier")
+    parser = argparse.ArgumentParser(description="BirdNET-Go → ntfy notifier")
     parser.add_argument(
         "--log",
         default="/home/sam/bird-listener/logs/detections.log",
         help="Path to BirdNET-Go detections.log",
     )
     parser.add_argument(
-        "--config",
-        default="/home/sam/bird-listener/config/apprise.yaml",
-        help="Path to Apprise config file",
+        "--ntfy-url",
+        default="https://ntfy.sh/sam_b_bird_alerts",
+        help="ntfy topic URL",
     )
     parser.add_argument(
         "--blocklist",
@@ -71,19 +72,13 @@ def main():
     args = parser.parse_args()
 
     log_path = Path(args.log)
-    config_path = Path(args.config)
     blocklist_path = Path(args.blocklist)
-
-    if not config_path.exists():
-        print(f"ERROR: Apprise config not found: {config_path}", file=sys.stderr)
-        sys.exit(1)
 
     # Wait for the log file to appear (birdnet-go may not have started yet)
     print(f"Waiting for detection log: {log_path}")
     while not log_path.exists():
         time.sleep(5)
 
-    ap = build_apprise(config_path)
     print(f"Watching {log_path} for detections...")
 
     for line in tail_file(log_path):
@@ -111,7 +106,7 @@ def main():
         body = detection["time"]
 
         print(f"Notifying: {title}")
-        ap.notify(title=title, body=body, tag="bird")
+        notify(args.ntfy_url, title, body)
 
 
 if __name__ == "__main__":
