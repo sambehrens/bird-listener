@@ -128,7 +128,7 @@ def main():
         confidence = lookup_confidence(db_path, detection["common"], detection["time"])
         confidence_str = f" ({int(confidence * 100)}%)" if confidence is not None else ""
 
-        title = f"Bird detected: {detection['common']}{confidence_str}"
+        title = f"{detection['common']}{confidence_str}"
         body = detection["time"]
 
         print(f"Notifying: {title}")
