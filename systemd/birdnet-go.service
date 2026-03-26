@@ -5,9 +5,9 @@ Wants=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/bird-listener
-ExecStart=/home/pi/bird-listener/bin/birdnet-go realtime --config /home/pi/bird-listener/config/birdnet-config.yaml
+User=sam
+WorkingDirectory=/home/sam/bird-listener
+ExecStart=/home/sam/bird-listener/bin/birdnet-go realtime --config /home/sam/bird-listener/config/birdnet-config.yaml
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

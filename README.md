@@ -50,8 +50,8 @@ Enable SSH in the imager settings and set your hostname/credentials.
 
 ```bash
 ssh pi@<pi-ip>
-git clone <this-repo-url> /home/pi/bird-listener
-cd /home/pi/bird-listener
+git clone <this-repo-url> /home/sam/bird-listener
+cd /home/sam/bird-listener
 ```
 
 ### 4. Configure
@@ -87,7 +87,7 @@ sudo systemctl start birdnet-go bird-notify
 
 ```bash
 # Watch detections in real time
-tail -f /home/pi/bird-listener/logs/detections.log
+tail -f /home/sam/bird-listener/logs/detections.log
 
 # Check service status
 sudo systemctl status birdnet-go

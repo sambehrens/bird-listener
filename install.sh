@@ -3,7 +3,7 @@
 # Run from the cloned repo directory: bash install.sh
 set -euo pipefail
 
-INSTALL_DIR="/home/pi/bird-listener"
+INSTALL_DIR="$HOME/bird-listener"
 BIN_DIR="$INSTALL_DIR/bin"
 BIRDNET_REPO="tphakala/birdnet-go"
 

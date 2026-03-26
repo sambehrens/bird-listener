@@ -63,12 +63,12 @@ def main():
     parser = argparse.ArgumentParser(description="BirdNET-Go → Apprise notifier")
     parser.add_argument(
         "--log",
-        default="/home/pi/bird-listener/logs/detections.log",
+        default="/home/sam/bird-listener/logs/detections.log",
         help="Path to BirdNET-Go detections.log",
     )
     parser.add_argument(
         "--config",
-        default="/home/pi/bird-listener/config/apprise.yaml",
+        default="/home/sam/bird-listener/config/apprise.yaml",
         help="Path to Apprise config file",
     )
     parser.add_argument(
