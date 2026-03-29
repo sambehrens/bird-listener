@@ -137,10 +137,10 @@ def main():
         last_notified[detection["common"]] = now
 
         confidence = lookup_confidence(db_path, detection["common"], detection["time"])
-        confidence_str = f" ({int(confidence * 100)}%)" if confidence is not None else ""
+        confidence_str = f" — {int(confidence * 100)}%" if confidence is not None else ""
 
-        title = f"{detection['common']}{confidence_str}"
-        body = detection["time"]
+        title = detection["common"]
+        body = f"{detection['time']}{confidence_str}"
 
         print(f"Notifying: {title}")
         notify(args.ntfy_url, title, body)
