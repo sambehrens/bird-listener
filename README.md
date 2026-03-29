@@ -5,7 +5,7 @@
 ## How it works
 
 ```
-USB microphone
+  USB microphone
         │
         ▼
   BirdNET-Go v0.6.4 (realtime mode)
