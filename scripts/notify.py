@@ -17,6 +17,8 @@ import sqlite3
 import urllib.request
 from pathlib import Path
 
+THROTTLE_SECONDS = 5 * 60  # one notification per bird per 5 minutes
+
 # Regex to parse a detection log line (v0.6.4 format: HH:MM:SS Common Name)
 DETECTION_RE = re.compile(r"(?P<time>\d{2}:\d{2}:\d{2})\s+(?P<common>.+)")
 
@@ -104,6 +106,8 @@ def main():
 
     print(f"Watching {log_path} for detections...")
 
+    last_notified: dict[str, float] = {}  # bird name → timestamp of last notification
+
     for line in tail_file(log_path):
         line = line.strip()
         if not line:
@@ -124,6 +128,13 @@ def main():
         if detection["common"].lower() in blocklist:
             print(f"Blocked: {detection['common']}")
             continue
+
+        now = time.monotonic()
+        last = last_notified.get(detection["common"], 0)
+        if now - last < THROTTLE_SECONDS:
+            print(f"Throttled: {detection['common']}")
+            continue
+        last_notified[detection["common"]] = now
 
         confidence = lookup_confidence(db_path, detection["common"], detection["time"])
         confidence_str = f" ({int(confidence * 100)}%)" if confidence is not None else ""
