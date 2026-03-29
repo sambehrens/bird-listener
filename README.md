@@ -5,25 +5,27 @@
 ## How it works
 
 ```
-Sennheiser Profile (USB mic)
+USB microphone
         │
         ▼
   BirdNET-Go v0.6.4 (realtime mode)
         │  writes detections to logs/detections.log
         ▼
   notify.py (watches log file)
-        │  sends via Apprise
+        │  HTTP POST
         ▼
   ntfy.sh (sam_b_bird_alerts) → phone
 ```
 
 Two systemd services run continuously: `birdnet-go` for audio capture and detection, `bird-notify` for watching the log and sending phone notifications.
 
+Notifications include the confidence score (e.g. "Carolina Wren (93%)") and are throttled to once per bird per 5 minutes.
+
 ## Requirements
 
 **Hardware:**
 - Raspberry Pi 3 (or newer, 64-bit)
-- USB microphone (Sennheiser Profile confirmed working on card 2)
+- USB microphone
 
 **OS:** Raspberry Pi OS Lite **64-bit, Bookworm** (Debian 12+). Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/) — enable SSH in the settings.
 
@@ -57,10 +59,9 @@ bash install.sh
 ```
 
 The installer:
-- Installs ffmpeg, sox, alsa-utils, python3-venv
+- Installs ffmpeg, sox, alsa-utils, python3
 - Downloads BirdNET-Go v0.6.4 binary (arm64)
 - Installs the bundled TensorFlow Lite library
-- Creates a Python venv and installs Apprise
 - Copies config to `~/.config/birdnet-go/config.yaml`
 - Installs and enables both systemd services
 
@@ -103,14 +104,6 @@ scp config/birdnet-config.yaml sam@<pi-ip>:~/.config/birdnet-go/config.yaml
 ssh sam@<pi-ip> sudo systemctl restart birdnet-go
 ```
 
-### `config/apprise.yaml`
-
-Notification destinations. Add more services using [Apprise URLs](https://github.com/caronc/apprise/wiki):
-```yaml
-urls:
-  - ntfy://ntfy.sh/sam_b_bird_alerts
-```
-
 ### `config/blocklist.txt`
 
 Birds to suppress notifications for. One name per line, case-insensitive. Lines starting with `#` are comments.
@@ -127,4 +120,8 @@ scp config/blocklist.txt sam@<pi-ip>:/home/sam/bird-listener/config/blocklist.tx
 
 ### Changing the audio device
 
-Run `arecord -l` to list devices. BirdNET-Go v0.6.4 matches `realtime.audio.source` by substring of the device name. Use `arecord -L` to see full ALSA names.
+Run `arecord -l` to list devices. BirdNET-Go v0.6.4 matches `realtime.audio.source` by substring of the device name. Run `arecord -L` to see full ALSA names.
+
+## Known issues
+
+**Thumbnail errors in web UI** — BirdNET-Go v0.6.4 fetches bird images from Wikipedia, which has blocked its requests. This causes `Error getting thumbnail info` log spam but does not affect detection or notifications. Fixed in nightly builds, but nightly builds have an unrelated audio bug (broadcast callback not registered) that prevents audio capture entirely. Revisit upgrading when a new stable release is available.
