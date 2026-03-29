@@ -42,13 +42,7 @@ Use Raspberry Pi Imager to flash **Raspberry Pi OS Lite (64-bit)**. In the setti
 - Set hostname, username, password
 - **Enable SSH**
 
-### 3. Set the timezone
-
-```bash
-sudo timedatectl set-timezone America/Chicago
-```
-
-### 4. Copy repo and run installer
+### 3. Copy repo and run installer
 
 From your Mac:
 ```bash

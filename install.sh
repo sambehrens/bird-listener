@@ -40,6 +40,17 @@ check_os() {
     info "OS OK — Debian $version_id, arch: $arch (BirdNET binary: $BIRDNET_ARCH)"
 }
 
+# ── Timezone ──────────────────────────────────────────────────────────────────
+set_timezone() {
+    local tz="America/Chicago"
+    if [[ "$(timedatectl show --property=Timezone --value 2>/dev/null)" != "$tz" ]]; then
+        info "Setting timezone to $tz..."
+        sudo timedatectl set-timezone "$tz"
+    else
+        info "Timezone already set to $tz"
+    fi
+}
+
 # ── Dependencies ──────────────────────────────────────────────────────────────
 install_deps() {
     info "Updating package list..."
@@ -136,6 +147,7 @@ main() {
     info "Install directory: $INSTALL_DIR"
 
     check_os
+    set_timezone
     install_deps
     setup_dirs
     install_birdnet
