@@ -10,3 +10,6 @@ House Sparrow
 European Starling
 Northern Cardinal
 Mourning Dove
+Blue Jay
+American Robin
+House Finch
