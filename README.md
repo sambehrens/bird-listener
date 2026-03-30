@@ -78,6 +78,60 @@ journalctl -u bird-notify -f
 http://<pi-ip>:8080
 ```
 
+## SSH access
+
+The Pi's IP is `192.168.1.97` (hostname: `pi3`, user: `sam`).
+
+```bash
+ssh sam@192.168.1.97
+```
+
+### Setting up from scratch on the Pi
+
+If you need to set up or re-install directly on the Pi without copying from your Mac:
+
+```bash
+ssh sam@192.168.1.97
+
+# Clone the repo
+git clone https://github.com/sambehrens/bird-listener.git /home/sam/bird-listener
+
+# Run the installer
+cd /home/sam/bird-listener
+bash install.sh
+
+# Start services
+sudo systemctl start birdnet-go bird-notify
+```
+
+### Making changes via SSH
+
+Edit files directly on the Pi, then commit and push back to the repo:
+
+```bash
+ssh sam@192.168.1.97
+cd ~/bird-listener
+
+# Edit a file, e.g. the blocklist
+nano config/blocklist.txt
+
+# Commit and push
+git add config/blocklist.txt
+git commit -m "Update blocklist"
+git push
+```
+
+For config changes that require a restart:
+```bash
+# birdnet-go config
+nano ~/.config/birdnet-go/config.yaml
+sudo systemctl restart birdnet-go
+
+# notification script
+nano ~/bird-listener/scripts/notify.py
+sudo systemctl restart bird-notify
+```
+
 ## Configuration
 
 ### `config/birdnet-config.yaml`
