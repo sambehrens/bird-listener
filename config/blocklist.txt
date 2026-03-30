@@ -15,3 +15,5 @@ American Robin
 House Finch
 Carolina Wren
 Northern Mockingbird
+Brown-headed Cowbird
+White-throated Sparrow
