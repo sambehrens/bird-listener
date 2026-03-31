@@ -1,5 +1,5 @@
 [Unit]
-Description=Bird detection → Apprise notification watcher
+Description=Bird detection → ntfy notification watcher
 After=birdnet-go.service
 Requires=birdnet-go.service
 
