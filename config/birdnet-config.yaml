@@ -14,6 +14,10 @@ realtime:
   audio:
     source: "USB Audio"   # Sennheiser Profile — v0.6.4 matches by device name substring
 
+  species:
+    exclude:
+      - "Eastern Screech-Owl"  # false-positives on sirens
+
   log:
     enabled: true
     path: logs/detections.log
