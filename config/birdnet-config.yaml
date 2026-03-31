@@ -1,4 +1,4 @@
-# BirdNET-Go v0.6.x configuration
+# BirdNET-Go nightly configuration
 # Full reference: https://github.com/tphakala/birdnet-go/wiki/Configuration
 
 birdnet:
@@ -6,13 +6,13 @@ birdnet:
   threshold: 0.75
   overlap: 1.5
   threads: 2           # Pi 3 has 4 cores; 2 leaves headroom for the OS
-  locale: en
+  locale: en-us
   latitude: 36.1183    # Tulsa, OK
   longitude: -95.9765  # Tulsa, OK
 
 realtime:
   audio:
-    source: "USB Audio"   # Sennheiser Profile — v0.6.4 matches by device name substring
+    source: "USB Audio"   # Matched by device name substring
 
   species:
     exclude:

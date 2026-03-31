@@ -6,9 +6,9 @@ set -euo pipefail
 INSTALL_DIR="$HOME/bird-listener"
 BIN_DIR="$INSTALL_DIR/bin"
 BIRDNET_REPO="tphakala/birdnet-go"
-BIRDNET_VERSION="v0.6.4"   # Pinned stable release
+BIRDNET_VERSION="nightly-20260322"
 
-# BirdNET-Go v0.6.x reads config from this fixed location (no --config flag)
+# BirdNET-Go reads config from this fixed location
 BIRDNET_CONFIG_DIR="$HOME/.config/birdnet-go"
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
