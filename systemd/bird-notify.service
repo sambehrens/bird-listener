@@ -10,7 +10,7 @@ Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 /home/sam/bird-listener/scripts/notify.py \
     --log /home/sam/bird-listener/logs/detections.log \
     --ntfy-url https://ntfy.sh/sam_b_bird_alerts
-Restart=on-failure
+Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
