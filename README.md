@@ -8,7 +8,7 @@
   USB microphone
         │
         ▼
-  BirdNET-Go v0.6.4 (realtime mode)
+  BirdNET-Go nightly-20260414 (realtime mode)
         │  writes detections to logs/detections.log
         ▼
   notify.py (watches log file)
@@ -54,10 +54,12 @@ bash install.sh
 
 The installer:
 - Installs ffmpeg, sox, alsa-utils, python3
-- Downloads BirdNET-Go v0.6.4 binary (arm64)
+- Downloads BirdNET-Go nightly-20260414 binary (arm64)
 - Installs the bundled TensorFlow Lite library
 - Copies config to `~/.config/birdnet-go/config.yaml`
 - Installs and enables both systemd services
+
+If you are upgrading an existing Pi from BirdNET-Go v0.6.x, the first nightly start will migrate `~/.config/birdnet-go/config.yaml` to the new multi-source audio format automatically.
 
 ### 5. Start
 
@@ -144,7 +146,7 @@ Key settings:
 | `birdnet.longitude` | `-95.9765` | Tulsa, OK |
 | `birdnet.threshold` | `0.75` | Min confidence to record (0.1–1.0) |
 | `birdnet.threads` | `2` | CPU threads (Pi 3 has 4 cores) |
-| `realtime.audio.source` | `USB Audio` | Matched by device name substring |
+| `realtime.audio.sources[0].device` | `USB Audio` | ALSA capture device name for the USB microphone |
 
 After editing, copy to the Pi and restart:
 ```bash
@@ -168,8 +170,10 @@ scp config/blocklist.txt sam@<pi-ip>:/home/sam/bird-listener/config/blocklist.tx
 
 ### Changing the audio device
 
-Run `arecord -l` to list devices. BirdNET-Go v0.6.4 matches `realtime.audio.source` by substring of the device name. Run `arecord -L` to see full ALSA names.
+Run `arecord -l` to list devices. Set `realtime.audio.sources[0].device` to the ALSA capture device name you want BirdNET-Go to open. Run `arecord -L` to see full ALSA names.
 
-## Known issues
+## Upgrade notes
 
-**Thumbnail errors in web UI** — BirdNET-Go v0.6.4 fetches bird images from Wikipedia, which has blocked its requests. This causes `Error getting thumbnail info` log spam but does not affect detection or notifications. Fixed in nightly builds, but nightly builds have an unrelated audio bug (broadcast callback not registered) that prevents audio capture entirely. Revisit upgrading when a new stable release is available.
+**nightly-20260414** replaces the old single-source `realtime.audio.source` setting with `realtime.audio.sources[]`. The bundled config in this repo already uses the new layout, and existing v0.6.x configs are migrated automatically by BirdNET-Go on first nightly start.
+
+**nightly-20260414** also expects a model label locale such as `en-us` or `en-uk` instead of the old generic `en`. The bundled config now uses `en-us`.

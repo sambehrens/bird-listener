@@ -6,10 +6,18 @@ set -euo pipefail
 INSTALL_DIR="$HOME/bird-listener"
 BIN_DIR="$INSTALL_DIR/bin"
 BIRDNET_REPO="tphakala/birdnet-go"
-BIRDNET_VERSION="v0.6.4"   # Pinned stable release
+BIRDNET_VERSION="nightly-20260414"   # Pinned nightly release
 
-# BirdNET-Go v0.6.x reads config from this fixed location (no --config flag)
+# BirdNET-Go reads config from this fixed location by default
 BIRDNET_CONFIG_DIR="$HOME/.config/birdnet-go"
+
+birdnet_archive_name() {
+    if [[ "$BIRDNET_VERSION" == nightly-* ]]; then
+        echo "birdnet-go-linux-${BIRDNET_ARCH}.tar.gz"
+    else
+        echo "birdnet-go-linux-${BIRDNET_ARCH}-${BIRDNET_VERSION}.tar.gz"
+    fi
+}
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; YELLOW='\033[1;33m'; GREEN='\033[0;32m'; NC='\033[0m'
@@ -68,13 +76,15 @@ install_birdnet() {
     mkdir -p "$BIN_DIR"
 
     info "Downloading BirdNET-Go ${BIRDNET_VERSION}..."
-    local archive="birdnet-go-linux-${BIRDNET_ARCH}-${BIRDNET_VERSION}.tar.gz"
+    local archive
+    archive="$(birdnet_archive_name)"
     local url="https://github.com/${BIRDNET_REPO}/releases/download/${BIRDNET_VERSION}/${archive}"
 
     curl -L --progress-bar -o "/tmp/$archive" "$url" \
         || error "Download failed. Check that $url exists."
 
     info "Extracting..."
+    rm -f "$BIN_DIR/birdnet-go" "$BIN_DIR/libtensorflowlite_c.so"
     tar -xzf "/tmp/$archive" -C "$BIN_DIR"
     chmod +x "$BIN_DIR/birdnet-go"
     rm "/tmp/$archive"
@@ -91,7 +101,7 @@ install_birdnet() {
 
 # ── Config & directories ──────────────────────────────────────────────────────
 setup_dirs() {
-    mkdir -p "$INSTALL_DIR"/{logs,data,clips,scripts}
+    mkdir -p "$INSTALL_DIR"/{logs,data,clips,config,scripts}
     mkdir -p "$BIRDNET_CONFIG_DIR"
 
     local repo_dir

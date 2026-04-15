@@ -1,4 +1,4 @@
-# BirdNET-Go v0.6.x configuration
+# BirdNET-Go nightly-20260414 configuration
 # Full reference: https://github.com/tphakala/birdnet-go/wiki/Configuration
 
 birdnet:
@@ -6,13 +6,22 @@ birdnet:
   threshold: 0.75
   overlap: 1.5
   threads: 2           # Pi 3 has 4 cores; 2 leaves headroom for the OS
-  locale: en
+  locale: en-us
   latitude: 36.1183    # Tulsa, OK
   longitude: -95.9765  # Tulsa, OK
 
+models:
+  enabled:
+    - birdnet
+
 realtime:
   audio:
-    source: "USB Audio"   # Sennheiser Profile — v0.6.4 matches by device name substring
+    sources:
+      - name: "Sound Card 1"
+        device: "USB Audio"   # Sennheiser Profile ALSA capture device
+        gain: 0
+        models:
+          - birdnet
 
   species:
     exclude:
@@ -25,4 +34,4 @@ realtime:
 
 webserver:
   enabled: true
-  port: 8080
+  port: "8080"
