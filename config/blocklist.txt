@@ -25,3 +25,6 @@ Red-tailed Hawk
 Eastern Bluebird
 Downy Woodpecker
 Chimney Swift
+Northern Flicker
+Fish Crow
+Green-winged Teal
