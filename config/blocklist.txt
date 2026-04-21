@@ -24,3 +24,4 @@ Common Nighthawk
 Red-tailed Hawk
 Eastern Bluebird
 Downy Woodpecker
+Chimney Swift
