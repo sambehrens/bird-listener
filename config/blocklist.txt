@@ -31,3 +31,7 @@ Green-winged Teal
 Pine Siskin
 Red-bellied Woodpecker
 Purple Martin
+Red-winged Blackbird
+Red-shouldered Hawk
+Ring-necked Pheasant
+Eurasian Collared-Dove
