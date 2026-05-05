@@ -35,3 +35,8 @@ Red-winged Blackbird
 Red-shouldered Hawk
 Ring-necked Pheasant
 Eurasian Collared-Dove
+Great Crested Flycatcher
+Great Blue Heron
+Carolina Chickadee
+Barred Owl
+Rock Pigeon
